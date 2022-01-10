@@ -1,0 +1,25 @@
+---
+title: "Paso Robles WTP Analysis"
+author: "Taylor Medina"
+date: "12/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+```{r}
+pasorobles <- read_csv("pasorobles.csv") %>% 
+  clean_names() %>% 
+  select(samp_date, field_pt_name, parameter, parvq, value, units) %>% 
+  filter(field_pt_name %in% c("FINAL EFFLUENT", "INFLUENT"),
+         units == "NG/L",
+         parvq == "=")
+```
+
+**Data:** Walter-Scandalis, Mark (2021). PASO ROBLES WWTP (NPD100051576). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=NPD100051576

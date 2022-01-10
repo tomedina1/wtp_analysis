@@ -1,0 +1,116 @@
+---
+title: "Santa Clarita WRP Analysis"
+author: "Taylor Medina"
+date: "12/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+saugus <- read_csv("saugus.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("SAU_CL_TER", "SAU_RAW"), #SAU_CL_TER is the effluent, SAU_RAW is the influent
+         parvq == "=",
+         units == "NG/L") %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+saugus_summary <- saugus %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+saugus_summary[is.na(saugus_summary)] <- 0
+
+saugus_1 <- saugus_summary %>% 
+  filter(samp_date == "11/18/2020") %>%
+  mutate(difference = SAU_CL_TER - SAU_RAW) %>% 
+  filter(difference > 2)
+
+saugus_2 <- saugus_summary %>% 
+  filter(samp_date == "2/11/2021") %>%
+  mutate(difference = SAU_CL_TER - SAU_RAW) %>% 
+  filter(difference > 2)
+
+saugus_3 <- saugus_summary %>% 
+  filter(samp_date == "5/6/2021") %>%
+  mutate(difference = SAU_CL_TER - SAU_RAW) %>% 
+  filter(difference > 2)
+
+saugus_4 <- saugus_summary %>% 
+  filter(samp_date == "8/24/2021") %>%
+  mutate(difference = SAU_CL_TER - SAU_RAW) %>% 
+  filter(difference > 2)
+```
+
+### Significant PFA concentration differences
+```{r}
+ggplot(data = saugus_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10),
+                   guide = guide_axis(n.dodge = 2)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "11/18/2020") +
+  theme_classic()
+
+ggplot(data = saugus_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "2/11/2021") +
+  theme_classic()
+
+ggplot(data = saugus_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "5/6/2021") +
+  theme_classic()
+
+ggplot(data = saugus_4,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "8/24/2021") +
+  theme_classic()
+```
+
+
+### Concentration Difference Summary Table
+```{r}
+total_saugus <- rbind(saugus_1, saugus_2, saugus_3, saugus_4) %>%
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_saugus %>% 
+  kable() %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Cantu, Esther (2021). SAUGUS WATER RECLAMATION PLANT (WDR100001085). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=WDR100001085

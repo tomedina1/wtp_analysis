@@ -1,0 +1,87 @@
+---
+title: "Data Export"
+author: "Taylor Medina"
+date: "12/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(openxlsx)
+library(janitor)
+```
+
+
+```{r}
+glendale_x <- glendale_summary %>% 
+  clean_names() 
+colnames(glendale_x)[4] <- "influent"
+
+ojai_x <- ojai_summary %>% 
+  clean_names()
+
+whittier_x <- whittier_summary %>% 
+  clean_names()
+colnames(whittier_x)[3] <- "effluent"
+colnames(whittier_x)[4] <- "influent"
+
+valencia_x <- valencia_summary %>% 
+  clean_names()
+colnames(valencia_x)[3] <- "effluent"
+colnames(valencia_x)[4] <- "influent"
+
+tillman_x <- tillman_summary %>% 
+  clean_names()
+colnames(tillman_x)[3] <- "effluent"
+colnames(tillman_x)[4] <- "influent"
+
+saugus_x <- saugus_summary %>% 
+  clean_names()
+colnames(saugus_x)[3] <- "effluent"
+colnames(saugus_x)[4] <- "influent"
+
+lompoc_x <- lompoc_summary %>% 
+  clean_names()
+
+camrosa_x <- camrosa_summary %>% 
+  clean_names()
+
+camarillo_x <- camarillo_summary %>% 
+  clean_names()
+
+moorpark_x <- moorpark_summary %>% 
+  clean_names()
+colnames(moorpark_x)[3] <- "effluent"
+colnames(moorpark_x)[4] <- "influent"
+
+simi_x <- simi_summary %>% 
+  clean_names()
+
+oaks_x <- thousandoaks_summary %>% 
+  clean_names()
+```
+
+```{r}
+wtp_list <- list("glendale" = glendale_x, "ojai" = ojai_x,
+                 "whittier" = whittier_x, "valencia" = valencia_x,
+                 "tillman" = tillman_x, "saugus" = saugus_x,
+                 "lompoc" = lompoc_x, "camrosa" = camrosa_x,
+                 "camarillo" = camarillo_x, "moorpark" = moorpark_x,
+                 "simivalley" = simi_x, "thousandoaks" = oaks_x)
+
+openxlsx::write.xlsx(wtp_list, "pfa_wtp.xlsx")
+```
+
+```{r}
+pfa_summary <- list("glendale" = total_glendale, "ojai" = total_ojai,
+                    "whittier" = total_whittier, "valencia" = total_valencia,
+                    "tillman" = total_tillman, "saugus" = total_saugus,
+                    "lompoc" = total_lompoc, "camrosa" = total_camrosa,
+                    "camarillo" = total_camarillo, "moorpark" = total_moorpark,
+                    "simivalley" = total_simi, "thousandoaks" = total_oaks)
+
+openxlsx::write.xlsx(pfa_summary, "pfa_differences.xlsx")
+```
+

@@ -1,0 +1,121 @@
+---
+title: "Camrosa WRF Analysis"
+author: "Taylor Medina"
+date: "12/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+camrosa <- read_csv("camrosa.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("EFF-002", "INF-002"),
+         units == "NG/L",
+         parvq == "=") %>% 
+  mutate(field_pt_name = case_when(
+    field_pt_name == "EFF-002" ~ "EFFLUENT",
+    field_pt_name == "INF-002" ~ "INFLUENT")) %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+camrosa_summary <- camrosa %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+camrosa_summary[is.na(camrosa_summary)] <- 0
+
+camrosa_1 <- camrosa_summary %>% 
+  filter(samp_date == "11/24/2020") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+camrosa_2 <- camrosa_summary %>% 
+  filter(samp_date == "3/22/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+camrosa_3 <- camrosa_summary %>% 
+  filter(samp_date == "5/26/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+camrosa_4 <- camrosa_summary %>% 
+  filter(samp_date == "8/18/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+```
+
+### Significant PFA concentration differences
+```{r}
+ggplot(data = camrosa_1, 
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "11/24/2020") +
+  theme_classic()
+
+ggplot(data = camrosa_2, 
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "3/22/2021") +
+  theme_classic()
+
+ggplot(data = camrosa_3, 
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10),
+                   guide = guide_axis(n.dodge = 2)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "5/26/2021") +
+  theme_classic()
+
+ggplot(data = camrosa_4, 
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10),
+                   guide = guide_axis(n.dodge = 2)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "8/18/2021") +
+  theme_classic()
+```
+
+
+
+### Concentration Difference Summary Table
+```{r}
+total_camrosa <- rbind(camrosa_1, camrosa_2, camrosa_3, camrosa_4) %>% 
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_camrosa %>% 
+  kable() %>% 
+    kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Phelps, Michael (2021). CAMROSA WATER RECLAMATION FACILITY (WDR100000191). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=WDR100000191

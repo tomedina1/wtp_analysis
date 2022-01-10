@@ -1,0 +1,27 @@
+---
+title: "San Luis Obispo WWTP Analysis"
+author: "Taylor Medina"
+date: "12/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+```{r}
+lowerslo <- read_csv("lowerslo.csv") %>% 
+  clean_names() %>% 
+  select(samp_date, field_pt_name, parameter, parvq, value, units) %>% 
+  filter(field_pt_name %in% c("EFF", "INF"),
+         units == "NG/L",
+         parvq == "=")
+
+lowerslo
+```
+
+**Data:** Lehman, Chris (2021). SAN LUIS OBISPO WWTP (NPD100051582). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=NPD100051582

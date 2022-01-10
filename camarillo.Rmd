@@ -1,0 +1,105 @@
+---
+title: "Camarillo WTP Analysis"
+author: "Taylor Medina"
+date: "12/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+camarillo <- read_csv("camarillo.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("EFF-001A", "INF-001"),
+         units == "NG/L",
+         parvq == "=") %>% 
+  mutate(field_pt_name = case_when(
+    field_pt_name == "EFF-001A" ~ "EFFLUENT",
+    field_pt_name == "INF-001" ~ "INFLUENT")) %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+camarillo_summary <- camarillo %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+camarillo_summary[is.na(camarillo_summary)] <- 0
+
+camarillo_1 <- camarillo_summary %>% 
+  filter(samp_date == "11/4/2020") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+camarillo_2 <- camarillo_summary %>% 
+  filter(samp_date == "2/3/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+camarillo_3 <- camarillo_summary %>% 
+  filter(samp_date == "8/4/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+```
+
+### Significant PFA concentration differences
+
+```{r}
+ggplot(data = camarillo_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "11/4/2020") +
+  theme_classic()
+
+ggplot(data = camarillo_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10),
+                   guide = guide_axis(n.dodge = 2)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "2/3/2021") +
+  theme_classic()
+
+ggplot(data = camarillo_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "8/4/2021") +
+  theme_classic()
+```
+
+
+### Concentration Difference Summary Table
+```{r}
+total_camarillo <- rbind(camarillo_1, camarillo_2, camarillo_3) %>% 
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_camarillo %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Viani, Michael (2021). CAMARILLO WRP (WDR100014340). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=WDR100014340

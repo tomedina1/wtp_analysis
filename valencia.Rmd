@@ -1,0 +1,117 @@
+---
+title: "Valencia WRP Analysis"
+author: "Taylor Medina"
+date: "12/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+valencia <- read_csv("valencia.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("VAL_CL_TER", "VAL_RAW"), # VAL_CL_TER is effluent, VAL_RAW is influent
+         units == "NG/L",
+         parvq == "=") %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+valencia_summary <- valencia %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+valencia_summary[is.na(valencia_summary)] <- 0
+
+
+valencia_1 <- valencia_summary %>% 
+  filter(samp_date == "11/18/2020") %>%
+  mutate(difference = VAL_CL_TER - VAL_RAW) %>% 
+  filter(difference > 2)
+  
+ valencia_2 <- valencia_summary %>% 
+  filter(samp_date == "2/11/2021") %>%
+  mutate(difference = VAL_CL_TER - VAL_RAW) %>% 
+  filter(difference > 2)
+ 
+ valencia_3 <- valencia_summary %>% 
+  filter(samp_date == "5/6/2021") %>%
+  mutate(difference = VAL_CL_TER - VAL_RAW) %>% 
+  filter(difference > 2)
+ 
+ valencia_4 <- valencia_summary %>% 
+  filter(samp_date == "8/12/2021") %>%
+  mutate(difference = VAL_CL_TER - VAL_RAW) %>% 
+  filter(difference > 2)
+```
+
+### Significant PFA concentration differences
+```{r}
+ggplot(data = valencia_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "11/18/2020") +
+  theme_classic()
+
+ggplot(data = valencia_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "2/11/2021") +
+  theme_classic()
+
+ggplot(data = valencia_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "5/6/2021") +
+  theme_classic()
+
+ggplot(data = valencia_4,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "8/12/2021") +
+  theme_classic()
+```
+
+
+### Concentration Difference Summary Table
+```{r}
+total_valencia <- rbind(valencia_1, valencia_2, valencia_3, valencia_4) %>% 
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_valencia %>% 
+  kable() %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Cantu, Esther (2021). VALENCIA WRP (WDR100001103). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=WDR100001103

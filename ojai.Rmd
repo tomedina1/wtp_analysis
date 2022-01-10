@@ -1,0 +1,100 @@
+---
+title: "Ojai Valley WTP Analysis"
+author: "Taylor Medina"
+date: "12/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+ojai <- read_csv("ojai.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("EFFLUENT", "INFLUENT"), 
+         units == "NG/L",
+         parvq == "=") %>% 
+  unite("parameter", parameter:parameter_name, sep = " ") # only includes values that were measured
+```
+
+```{r}
+ojai_summary <- ojai %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name, # makes columns for influent and effluent
+              values_from = mean_conc) 
+
+ojai_summary[is.na(ojai_summary)] <- 0
+
+ojai_1 <- ojai_summary %>% 
+  filter(samp_date == "11/18/2020") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+ojai_2 <- ojai_summary %>% 
+  filter(samp_date == "3/16/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+ojai_3 <- ojai_summary %>% 
+  filter(samp_date == "6/22/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+```
+### Significant PFA concentration differences
+```{r}
+ggplot(data = ojai_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "11/18/2020") +
+  theme_classic()
+
+ggplot(data = ojai_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "3/16/2021") +
+  theme_classic()
+
+ggplot(data = ojai_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "6/22/2021") +
+  theme_classic()
+```
+
+### Concentration Difference Summary Table
+```{r}
+total_ojai <- rbind(ojai_1, ojai_2, ojai_3) %>% # combines data frames
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter, # makes columns for each PFA
+              values_from = difference)
+
+total_ojai %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Harter, David (2021). OJAI VALLEY WTP (NPD100051520). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=NPD100051520
+
+

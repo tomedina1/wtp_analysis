@@ -1,0 +1,129 @@
+---
+title: "Tillman WWRP Analysis"
+author: "Taylor Medina"
+date: "12/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+tillman <- read_csv("tillman.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("PW", "RI"), # PW is effluent and RI is influent
+         parvq == "=",
+         units == "NG/L") %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+tillman_summary <- tillman %>% 
+  group_by(parameter, field_pt_name, samp_date)%>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+tillman_summary[is.na(tillman_summary)] <- 0
+
+tillman_1 <- tillman_summary %>% 
+  filter(samp_date == "10/5/2020") %>% 
+  mutate(difference = PW - RI) %>% 
+  filter(difference > 2)
+
+tillman_2 <- tillman_summary %>% 
+  filter(samp_date == "10/14/2020") %>% 
+  mutate(difference = PW - RI) %>% 
+  filter(difference > 2)
+
+tillman_3 <- tillman_summary %>% 
+  filter(samp_date == "2/2/2021") %>% 
+  mutate(difference = PW - RI) %>% 
+  filter(difference > 2)
+
+tillman_4 <- tillman_summary %>% 
+  filter(samp_date == "4/4/2021") %>% 
+  mutate(difference = PW - RI) %>% 
+  filter(difference > 2)
+
+tillman_5 <- tillman_summary %>% 
+  filter(samp_date == "7/7/2021") %>% 
+  mutate(difference = PW - RI) %>% 
+  filter(difference > 2)
+```
+
+### Significant PFA concentration differences
+```{r}
+ggplot(data = tillman_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "10/5/2020") +
+  theme_classic()
+
+ggplot(data = tillman_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "10/14/2020") +
+  theme_classic()
+
+ggplot(data = tillman_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "2/2/2021") +
+  theme_classic()
+
+ggplot(data = tillman_4,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "4/4/2021") +
+  theme_classic()
+
+ggplot(data = tillman_5,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "7/7/2021") +
+  theme_classic()
+```
+
+### Time series of PFAs that conisistently show up 
+```{r}
+total_tillman <- rbind(tillman_1, tillman_3,
+                       tillman_4, tillman_5) %>% 
+    select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_tillman %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Los Angeles Department of Public Works (2021). DONALD C. TILLMAN WWRP (WDR100001153). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=WDR100001153

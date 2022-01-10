@@ -1,0 +1,114 @@
+---
+title: "Hill Canyon WWTP Analysis"
+author: "Taylor Medina"
+date: "12/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+thousandoaks <- read_csv("thousandoaks.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("HCTP EFF", "HCTP INF"),
+         units == "NG/L",
+         parvq == "=") %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+thousandoaks_summary <- thousandoaks %>% 
+  group_by(parameter, samp_id, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = samp_id,
+              values_from = mean_conc)
+
+thousandoaks_summary[is.na(thousandoaks_summary)] <- 0
+
+oaks_1 <- thousandoaks_summary %>% 
+  filter(samp_date == "12/2/2020") %>% 
+  mutate(difference = Effluent - Influent) %>% 
+  filter(difference > 2)
+
+oaks_2 <- thousandoaks_summary %>% 
+  filter(samp_date == "3/2/2021") %>% 
+  mutate(difference = Effluent - Influent) %>% 
+  filter(difference > 2)
+
+oaks_3 <- thousandoaks_summary %>% 
+  filter(samp_date == "5/26/2021") %>% 
+  mutate(difference = Effluent - Influent) %>% 
+  filter(difference > 2)
+
+oaks_4 <- thousandoaks_summary %>% 
+  filter(samp_date == "7/14/2021") %>% 
+  mutate(difference = Effluent - Influent) %>% 
+  filter(difference > 2)
+```
+
+### Significant PFA concentration differences
+```{r}
+ggplot(data = oaks_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "12/2/2020") +
+  theme_classic() 
+
+ggplot(data = oaks_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "3/2/2021") +
+  theme_classic() 
+
+ggplot(data = oaks_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "5/26/2021") +
+  theme_classic() 
+
+ggplot(data = oaks_4,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "7/14/2021") +
+  theme_classic() 
+```
+
+### Concentration Difference Summary Table
+```{r}
+total_oaks <- rbind(oaks_1, oaks_2, oaks_3, oaks_4) %>% 
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_oaks %>% 
+  kable() %>% 
+    kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Marquez, Santos (2021). HILL CANYON WWTP (NPD100051993). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=NPD100051993

@@ -1,0 +1,115 @@
+---
+title: "LA/Glendale WWRP Analysis"
+author: "Taylor Medina"
+date: "12/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+glendale <- read_csv("la_glendale.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("RI", "EFFLUENT"), # RI is influent
+         units == "NG/L", 
+         parvq == "=") %>% # only includes values that were measured
+  unite("parameter", parameter:parameter_name, sep = " ") 
+```
+
+```{r}
+glendale_summary <- glendale %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name, # makes new columns for influent and effluent
+              values_from = mean_conc) 
+
+glendale_summary[is.na(glendale_summary)] <- 0 # replaces NA values with 0
+ 
+glendale_1 <- glendale_summary %>% 
+  filter(samp_date == "10/5/2020") %>%
+  mutate(difference = EFFLUENT - RI) %>% 
+  filter(difference > 2)
+
+glendale_2 <- glendale_summary %>% 
+  filter(samp_date == "2/2/2021") %>% 
+  mutate(difference = EFFLUENT - RI) %>% 
+  filter(difference > 2)
+
+glendale_3 <- glendale_summary %>% 
+  filter(samp_date == "4/4/2021") %>% 
+  mutate(difference = EFFLUENT - RI) %>% 
+  filter(difference > 2)
+
+glendale_4 <- glendale_summary %>% 
+filter(samp_date == "7/7/2021") %>% 
+  mutate(difference = EFFLUENT - RI) %>% 
+  filter(difference > 2)
+```
+### Significant PFA concentration differences
+```{r}
+ggplot(data = glendale_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "10/5/2020") +
+  theme_classic()
+
+ggplot(data = glendale_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "2/2/2021") +
+  theme_classic()
+
+ggplot(data = glendale_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "4/4/2021") +
+  theme_classic()
+
+ggplot(data = glendale_4,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "7/7/2021") +
+  theme_classic()
+```
+
+### Concentration Difference Summary Table
+```{r}
+total_glendale <- rbind(glendale_1, glendale_2, glendale_3, glendale_4) %>% # combines all of the data frames
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter, # makes new columns for each measured PFA
+              values_from = difference)
+
+total_glendale %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+
+**Data:** Los Angeles Department of Public Works (2021). LOS-ANGELES GLENDALE WWRP (WDR100001164). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=WDR100001164. 
+

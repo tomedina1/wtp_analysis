@@ -1,0 +1,88 @@
+---
+title: "Lompoc WRP Analysis"
+author: "Taylor Medina"
+date: "12/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+lompoc <- read_csv("lompoc.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("EFF-001", "INF-001"),
+         units == "NG/L",
+         parvq == "=") %>% 
+  mutate(field_pt_name = case_when(
+    field_pt_name == "EFF-001" ~ "EFFLUENT",
+    field_pt_name == "INF-001" ~ "INFLUENT")) %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+lompoc_summary <- lompoc %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+lompoc_summary[is.na(lompoc_summary)] <- 0
+
+lompoc_1 <- lompoc_summary %>%
+  filter(samp_date == "3/9/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+
+lompoc_2 <- lompoc_summary %>%
+  filter(samp_date == "6/17/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+```
+### Significant PFA concentration differences
+```{r}
+ggplot(data = lompoc_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "3/9/2021") +
+  theme_classic()
+
+ggplot(data = lompoc_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10),
+                   guide = guide_axis(n.dodge = 2)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "6/17/2021") +
+  theme_classic()
+```
+
+### Concentration Difference Summary Table
+```{r}
+total_lompoc <- rbind(lompoc_1, lompoc_2) %>% 
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_lompoc %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Stevens, Brian (2021). Laboratory Analytical Reports (EDF) for the Lompoc City Regional Wastewater Reclamation Plant (NPD100051494). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=NPD100051494
+

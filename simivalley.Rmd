@@ -1,0 +1,113 @@
+---
+title: "Simi Valley WQCP Analysis"
+author: "Taylor Medina"
+date: "12/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+**Concentration Difference:** $\Delta$ [PFA] = Effluent - Influent
+
+- A positive concentration difference means that there is a greater concentration in the effluent than the influent
+
+```{r}
+simi <- read_csv("simivalley.csv") %>% 
+  clean_names() %>% 
+  filter(field_pt_name %in% c("EFFLUENT", "INFLUENT"),
+         units == "NG/L",
+         parvq == "=") %>% 
+  unite("parameter", parameter:parameter_name, sep = " ")
+```
+
+```{r}
+simi_summary <- simi %>% 
+  group_by(parameter, field_pt_name, samp_date) %>% 
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+simi_summary[is.na(simi_summary)] <- 0
+
+simi_1 <- simi_summary %>% 
+  filter(samp_date == "11/3/2020") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)  
+
+simi_2 <- simi_summary %>% 
+  filter(samp_date == "2/2/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)  
+
+simi_3 <- simi_summary %>% 
+  filter(samp_date == "5/4/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2) 
+
+simi_4 <- simi_summary %>% 
+  filter(samp_date == "8/3/2021") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% 
+  filter(difference > 2)
+```
+### Significant PFA concentration differences
+```{r}
+ggplot(data = simi_1,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "11/3/2020") +
+  theme_classic()  
+
+ggplot(data = simi_2,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "2/2/2021") +
+  theme_classic()  
+
+ggplot(data = simi_3,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "5/4/2021") +
+  theme_classic()  
+
+ggplot(data = simi_4,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_hline(yintercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "Concentration difference (ng/L)",
+       title = "8/3/2021") +
+  theme_classic()  
+```
+
+### Concentration Difference Summary Table
+```{r}
+total_simi <- rbind(simi_1, simi_2, simi_3, simi_4) %>% 
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_simi %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+**Data:** Arcelona, Mar (2021). SIMI VALLEY WQCP (WDR100000869). Retrieved from: https://geotracker.waterboards.ca.gov/profile_report?global_id=WDR100000869
