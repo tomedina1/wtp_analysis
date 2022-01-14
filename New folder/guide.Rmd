@@ -1,0 +1,90 @@
+---
+title: "Analysis Guide"
+author: "Taylor Medina"
+date: "1/14/2022"
+output: html_document
+---
+
+**Data Source:** https://geotracker.waterboards.ca.gov/map/pfas_map
+
+The packages necessary to analyze the PFA data from the GeoTracker are
+`tidyverse` `janitor` and `kableExtra`.
+
+```{r setup, include = TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+### Load packages
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+Next the raw data from GeoTracker is uploaded using the `readr::read_csv()` function and `janitor::clean_names()` is performed to clean up the data set
+
+The important variables in the dataset are:
+
+- field_pt_name: where in the water treatment plant the sample was taken
+- units: what units the readings are
+- parvq: what level the reading was (=, NA, etc.)
+
+The code chunk below shows the code structure used to read in and then clean up the data to be analyzed. 
+```{r}
+wwtp <- read_csv(" ") %>% ### type the name of the .csv file including the .csv
+  clean_names() %>% 
+  filter(field_pt_name %in% c(" " , " "), ### Input the field_pt_name for EFFLUENT and then INFLUENT
+         ### You may need to change the names of the variables if the include numbers using mutate and case_when()
+         units = "NG/L",
+         parvq == "=") %>% 
+  unite("parameter", parameter:parameter_name, sep = " ") ### combines two columns so the PFAs have the shorthand name and the full anme
+```
+* the wwtp variable will be changed to whatever wwtp you will be studying (i.e. the Camarillo WWTP will have a variable name of camarillo instead of wwtp)
+
+The code chunk below shows the steps used in wrangling the data for visualization and analysis purposes
+```{r}
+wwtp_summary <- wwtp %>%
+  group_by(parameter, field_pt_name, samp_date) %>% ### only incorporates the essential information
+  summarize(mean_conc  = mean(value, na.rm = TRUE)) %>% ### calculates the mean concentration for each of the groups
+  pivot_wider(names_from = field_pt_name,
+              values_from = mean_conc)
+
+wwtp_summary[is.na(wwtp_summary)] <- 0 ### converts all NA values to 0
+```
+
+The following code chunk corresponds to the number of sampling dates available in the data set
+```{r}
+wwtp_x <- wwtp_summary %>% ### make a copy of this code chunk for each sampling date and replace x with the sample number 
+  filter(samp_date == "Sampling Day N") %>% 
+  mutate(difference = EFFLUENT - INFLUENT) %>% ### calculates the concentration difference in the WWTP
+  filter(difference > 2) ### sets a significance level of a difference of 2 ng/L
+```
+
+This code chunk is for the visualization of the PFA concentration differences. Remember to copy the code for each sampling date
+```{r}
+ggplot(data = wwtp,
+       aes(x = parameter, y = difference)) +
+  geom_bar(stat = 'identity', width = 0.5) +
+  geom_hline(intercept = 0) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  labs(x = "PFA",
+       y = "concentration difference (ng/L)",
+       title = "Sampling Date")
+
+### If the names of the PFAs are on top of each other in the x axis, modify the scale_x_discrete function in ggplot as:
+
+### scale_x_discrete(labels = function(x) str_wrap(x, width = 10),
+###                  guide = guide_axis(n.dodge = 2))
+``` 
+
+To make the summary table of the concentrations - the `kableExtra` package is used
+```{r}
+total_wwtp <- rbind(wwtp_x) %>% ### wwtp_x is a place holder for all of the sample dates there are
+  select(parameter, samp_date, difference) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = difference)
+
+total_wwtp %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c('hover', 'striped'))
+```
+
+
